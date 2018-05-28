@@ -1,0 +1,55 @@
+var kb = require("ble_hid_keyboard");
+NRF.setServices(undefined, { hid : kb.report });
+var next = "n";
+var prev = "p";
+
+function sendPrev(){
+  sendCharPrev();
+  LED2.set();
+  setTimeout("LED2.reset()",1000);
+}
+
+function sendNext(){
+  if(Puck.magOn() === true){
+    // stay put, do nothing
+  } else if(Puck.magOn() === false) {
+    Puck.magOn(); // turn on magnetic sensor only if off
+  }
+  sendCharNext();
+  LED2.set();
+  setTimeout("LED2.reset()",1000);
+}
+
+function sendCharNext(){
+  if (next == next.toLowerCase()){
+      sk = 0;
+    } else {
+      sk = 0x02;}
+    // send the "n" keyboard character
+    kb.tap(kb.KEY[next.toUpperCase()], sk);
+}
+
+function sendCharPrev(){
+  if (prev == prev.toLowerCase()){
+      sk = 0;
+    } else {
+      sk = 0x02;}
+    // send the "p" keyboard character
+    kb.tap(kb.KEY[prev.toUpperCase()], sk);
+}
+
+// watch the button press, action happens on button release (rising)
+// debounce set to 50 to prevent unintended mechanical "bounce" triggers
+setWatch(function(e) {
+    sendNext(); // fire the "n" character
+}, BTN, {edge:"rising", debounce:50, repeat:true});
+
+// trigger the "p" character when the x magnetic axis value is over 0
+Puck.on('mag', function(value) {
+  if(value.x > 0){
+    sendPrev(); // fire the "p" character
+  }
+});
+
+// turn off magnetic sensor after 30 minutes to save power
+setTimeout(function(){ Puck.magOff(); }, 1800000);
